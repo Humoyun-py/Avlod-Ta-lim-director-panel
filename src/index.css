@@ -17,6 +17,17 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* Make all inputs, selects, and textareas have crisp black text for readability */
+  input, select, textarea {
+    color: #0f172a !important;
+  }
+  input::placeholder, textarea::placeholder {
+    color: #64748b !important;
+  }
+  input:focus, select:focus, textarea:focus {
+    color: #000000 !important;
+  }
+
   /* Custom Clean Scrollbar */
   ::-webkit-scrollbar {
     width: 6px;

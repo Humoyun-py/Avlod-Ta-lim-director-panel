@@ -20,8 +20,10 @@ import { Modal } from '../components/common/Modal';
 import { EmptyState } from '../components/common/EmptyState';
 import { Pagination } from '../components/common/Pagination';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export const OrdersPage: React.FC = () => {
+  const { t } = useLanguage();
   const { success, error, info } = useToast();
   const [orders, setOrders] = useState<ShopOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,6 +77,7 @@ export const OrdersPage: React.FC = () => {
       if (selectedOrder && selectedOrder.id === orderId) {
         setSelectedOrder(updated);
       }
+      window.dispatchEvent(new Event('orders-updated'));
       
       if (newStatus === 'Accepted') {
         success('Buyurtma qabul qilindi', `${updated.studentName} ning buyurtmasi tasdiqlandi`);
@@ -96,10 +99,10 @@ export const OrdersPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
-            Do‘kon Buyurtmalari (Shop Orders)
+            {t('orders.title')}
           </h2>
           <p className="text-xs sm:text-sm text-gray-500">
-            O‘quvchilar tomonidan coin hisobidan buyurtma qilingan mahsulotlarni ko‘rib chiqish, tasdiqlash va topshirish
+            {t('orders.subtitle')}
           </p>
         </div>
       </div>
@@ -115,7 +118,7 @@ export const OrdersPage: React.FC = () => {
               setSearchQuery(e.target.value);
               setCurrentPage(1);
             }}
-            placeholder="Buyurtma raqami, talaba yoki mahsulot..."
+            placeholder={t('orders.search_placeholder')}
             className="w-full bg-[#F8F8FC] border border-[#E9EAF3] focus:border-[#5C42FD] focus:bg-white rounded-xl pl-9 pr-3 py-2 text-xs text-gray-900 placeholder-gray-400 focus:outline-hidden"
           />
         </div>
@@ -134,7 +137,15 @@ export const OrdersPage: React.FC = () => {
                   : 'text-gray-500 hover:text-gray-900'
               }`}
             >
-              {st === 'all' ? 'Hammasi' : st === 'Pending' ? 'Kutilmoqda' : st === 'Accepted' ? 'Qabul qilingan' : st === 'Completed' ? 'Topshirilgan' : 'Rad etilgan'}
+              {st === 'all'
+                ? t('common.all')
+                : st === 'Pending'
+                ? t('status.pending')
+                : st === 'Accepted'
+                ? t('status.accepted')
+                : st === 'Completed'
+                ? t('status.completed')
+                : t('status.rejected')}
             </button>
           ))}
         </div>
@@ -143,7 +154,7 @@ export const OrdersPage: React.FC = () => {
       {/* Orders Table */}
       {filteredOrders.length === 0 ? (
         <EmptyState
-          title="Buyurtmalar topilmadi"
+          title={t('common.empty')}
           description="Hozircha hech qanday buyurtma ro‘yxatga olinmagan."
           icon={PackageCheck}
         />
@@ -153,13 +164,13 @@ export const OrdersPage: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead className="bg-[#FAF9FE] text-gray-500 font-bold border-b border-[#F0F1F7] tracking-wider uppercase text-[11px]">
                 <tr>
-                  <th className="px-6 py-4">Buyurtma</th>
-                  <th className="px-6 py-4">Student</th>
-                  <th className="px-6 py-4">Mahsulot</th>
-                  <th className="px-6 py-4 text-center">Coin Summasi</th>
-                  <th className="px-6 py-4">Sana</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4 text-right">Amallar (Status)</th>
+                  <th className="px-6 py-4">{t('nav.orders')}</th>
+                  <th className="px-6 py-4">{t('dashboard.th_student')}</th>
+                  <th className="px-6 py-4">{t('dashboard.th_product')}</th>
+                  <th className="px-6 py-4 text-center">{t('dashboard.th_coins')}</th>
+                  <th className="px-6 py-4">{t('dashboard.th_date')}</th>
+                  <th className="px-6 py-4">{t('dashboard.th_status')}</th>
+                  <th className="px-6 py-4 text-right">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-gray-700">

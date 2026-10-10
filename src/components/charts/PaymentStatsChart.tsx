@@ -1,13 +1,15 @@
 import React from 'react';
 import { CreditCard, CheckCircle2, Clock, AlertCircle, Ban } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const PaymentStatsChart: React.FC = () => {
-  // Statistics: Paid 74%, Pending 15%, Overdue 8%, Blocked 3%
+  const { t } = useLanguage();
+
   const stats = [
-    { label: 'Paid (To‘langan)', count: 218, percent: 74, color: 'bg-emerald-500', barBg: 'bg-emerald-100', icon: CheckCircle2, text: 'text-emerald-700' },
-    { label: 'Pending (Kutilmoqda)', count: 44, percent: 15, color: 'bg-amber-500', barBg: 'bg-amber-100', icon: Clock, text: 'text-amber-700' },
-    { label: 'Overdue (Kechikkan)', count: 23, percent: 8, color: 'bg-rose-500', barBg: 'bg-rose-100', icon: AlertCircle, text: 'text-rose-700' },
-    { label: 'Blocked (Bloklangan)', count: 9, percent: 3, color: 'bg-gray-500', barBg: 'bg-gray-200', icon: Ban, text: 'text-gray-700' }
+    { label: t('status.paid'), count: 218, percent: 74, color: 'bg-emerald-500', barBg: 'bg-emerald-100', icon: CheckCircle2, text: 'text-emerald-700' },
+    { label: t('status.pending'), count: 44, percent: 15, color: 'bg-amber-500', barBg: 'bg-amber-100', icon: Clock, text: 'text-amber-700' },
+    { label: t('status.overdue'), count: 23, percent: 8, color: 'bg-rose-500', barBg: 'bg-rose-100', icon: AlertCircle, text: 'text-rose-700' },
+    { label: t('status.blocked'), count: 9, percent: 3, color: 'bg-gray-500', barBg: 'bg-gray-200', icon: Ban, text: 'text-gray-700' }
   ];
 
   return (
@@ -18,11 +20,11 @@ export const PaymentStatsChart: React.FC = () => {
             <CreditCard className="w-4 h-4" />
           </span>
           <h3 className="text-base font-bold text-gray-900">
-            To‘lov Holatlari Statistikasi
+            {t('charts.payment_stats_title')}
           </h3>
         </div>
         <p className="text-xs text-gray-500 mt-1">
-          Joriy oy uchun barcha o‘quvchilarning to‘lov holati taqsimoti
+          {t('charts.payment_stats_sub')}
         </p>
       </div>
 
@@ -50,7 +52,7 @@ export const PaymentStatsChart: React.FC = () => {
                   <span className="text-gray-600 font-medium">{item.label}</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="font-semibold text-gray-900">{item.count} nafar</span>
+                  <span className="font-semibold text-gray-900">{item.count} {t('common.students_count_suffix')}</span>
                   <span className={`font-bold px-1.5 py-0.5 rounded text-[11px] ${item.barBg} ${item.text}`}>
                     {item.percent}%
                   </span>
@@ -59,11 +61,6 @@ export const PaymentStatsChart: React.FC = () => {
             );
           })}
         </div>
-      </div>
-
-      <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-        <span>To‘lov yig‘ilish sur’ati:</span>
-        <span className="font-bold text-[#5C42FD]">89.2% (Normada)</span>
       </div>
     </div>
   );

@@ -18,8 +18,10 @@ import { Modal } from '../components/common/Modal';
 import { ConfirmationModal } from '../components/common/ConfirmationModal';
 import { EmptyState } from '../components/common/EmptyState';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export const CoursesPage: React.FC = () => {
+  const { t } = useLanguage();
   const { success, error } = useToast();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -132,10 +134,10 @@ export const CoursesPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
-            O‘quv Dasturlari (Courses)
+            {t('courses.title')}
           </h2>
           <p className="text-xs sm:text-sm text-gray-500">
-            Avlod Ta'lim akademiyasining ta’lim yo‘nalishlari, narxlari va oylik muddatlari
+            {t('courses.subtitle')}
           </p>
         </div>
 
@@ -145,7 +147,7 @@ export const CoursesPage: React.FC = () => {
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#5C42FD] hover:bg-[#4d33eb] text-white text-xs font-bold rounded-xl shadow-sm shadow-[#5C42FD]/30 transition-all cursor-pointer shrink-0"
         >
           <Plus className="w-4 h-4" />
-          <span>Create Course</span>
+          <span>{t('courses.new_course')}</span>
         </button>
       </div>
 

@@ -15,9 +15,12 @@ import {
 } from 'lucide-react';
 import { DirectorService } from '../services/mockService';
 import { Course, Group, Teacher } from '../types';
+import { exportToCSV } from '../utils/exportUtils';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export const ReportsPage: React.FC = () => {
+  const { t, language } = useLanguage();
   const { success, info } = useToast();
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -44,17 +47,28 @@ export const ReportsPage: React.FC = () => {
   }, []);
 
   const handleExportExcel = () => {
-    info('Excel Eksport', 'Akademiya oylik hisoboti (.xlsx formatda) shakllantirilmoqda...');
-    setTimeout(() => {
-      success('Yuklandi', 'Avlod_Talim_Hisobot_Oktyabr_2026.xlsx muvaffaqiyatli yuklab olindi');
-    }, 1000);
+    const headers = ['Hisobot Bo‘limi', 'Ko‘rsatkich Nomi', 'Qiymat', 'Qo‘shimcha Izoh / Ulush', 'Davr'];
+    const rows = [
+      ['Moliya', 'Jami Tushum (Total Revenue)', '284,000,000 UZS', '100%', selectedMonth],
+      ['Moliya', 'Naqd Kassa (Cash)', '42,600,000 UZS', '15%', selectedMonth],
+      ['Moliya', 'Click', '99,400,000 UZS', '35%', selectedMonth],
+      ['Moliya', 'Payme', '113,600,000 UZS', '40%', selectedMonth],
+      ['Moliya', 'Uzum', '28,400,000 UZS', '10%', selectedMonth],
+      ['Talabalar', 'Yangi Talabalar (New)', '48 nafar', 'Oy davomida qabul qilingan', selectedMonth],
+      ['Talabalar', 'Faol Talabalar (Active)', '281 nafar', 'Darslarda qatnashmoqda', selectedMonth],
+      ['Talabalar', 'To‘xtatilgan (Blocked/Overdue)', '13 nafar', 'To‘lov qarzdorligi tufayli', selectedMonth],
+      ['Talabalar', 'Jami Talabalar', '294 nafar', 'Umumiy kontingent', selectedMonth],
+      ['Ustozlar & Guruhlar', 'Ustozlar Soni', `${teachers.length} nafar`, 'Faol o‘qituvchilar', selectedMonth],
+      ['Ustozlar & Guruhlar', 'Akademik Guruhlar', `${groups.length} ta`, 'Dars jadvalidagi guruhlar', selectedMonth],
+      ['Ustozlar & Guruhlar', 'O‘rtacha Davomat', '94.2%', 'Davomat ko‘rsatkichi', selectedMonth],
+    ];
+    exportToCSV(`Avlod_Talim_Hisobot_${selectedMonth}.csv`, headers, rows);
+    success('Yuklab olindi', `Avlod_Talim_Hisobot_${selectedMonth}.csv fayli muvaffaqiyatli saqlandi`);
   };
 
   const handleExportPDF = () => {
-    info('PDF Eksport', 'Direktor uchun rasmiy hisobot PDF hujjati generatsiya qilinmoqda...');
-    setTimeout(() => {
-      success('Tayyor', 'Avlod_Talim_Official_Report_2026.pdf muvaffaqiyatli saqlandi');
-    }, 1000);
+    info('PDF Chop etish', 'Hisobot hujjatini chop etish / PDF sifatida saqlash oynasi ochilmoqda...');
+    window.print();
   };
 
   return (
@@ -63,10 +77,10 @@ export const ReportsPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
-            Oylik Hisobotlar (Monthly Reports)
+            {t('reports.title')}
           </h2>
           <p className="text-xs sm:text-sm text-gray-500">
-            Akademiyaning moliya, talabalar o‘sishi, ustozlar faoliyati va davomat bo‘yicha to‘liq analitikasi
+            {t('reports.subtitle')}
           </p>
         </div>
 
@@ -78,7 +92,7 @@ export const ReportsPage: React.FC = () => {
             className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 text-xs font-bold rounded-xl shadow-2xs transition-colors cursor-pointer"
           >
             <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-            <span>Export Excel</span>
+            <span>{t('common.export')}</span>
           </button>
           <button
             type="button"
@@ -86,7 +100,7 @@ export const ReportsPage: React.FC = () => {
             className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-[#5C42FD] hover:bg-[#4d33eb] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
           >
             <FileText className="w-4 h-4" />
-            <span>Export PDF</span>
+            <span>{language === 'uz' ? 'PDF Chop etish' : language === 'ru' ? 'Печать PDF' : 'Print PDF'}</span>
           </button>
         </div>
       </div>

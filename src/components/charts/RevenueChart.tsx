@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { MONTHLY_REVENUE_CHART_DATA } from '../../data/mockData';
 import { ArrowUpRight, TrendingUp } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const RevenueChart: React.FC = () => {
+  const { t } = useLanguage();
   const [activeRange, setActiveRange] = useState<'all' | '6m'>('all');
   const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
 
@@ -37,11 +39,11 @@ export const RevenueChart: React.FC = () => {
               <TrendingUp className="w-4 h-4" />
             </span>
             <h3 className="text-base font-bold text-gray-900">
-              Oylik Tushum Dinamikasi (Revenue)
+              {t('charts.revenue_title')}
             </h3>
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            Akademiyaning 2026-yilgi umumiy tushumi va oylik o‘sish sur’ati
+            {t('charts.revenue_sub')}
           </p>
         </div>
 
@@ -56,7 +58,7 @@ export const RevenueChart: React.FC = () => {
                   : 'text-gray-500 hover:text-gray-900'
               }`}
             >
-              Yillik
+              {t('charts.yearly')}
             </button>
             <button
               type="button"
@@ -67,7 +69,7 @@ export const RevenueChart: React.FC = () => {
                   : 'text-gray-500 hover:text-gray-900'
               }`}
             >
-              Oxirgi 6 oy
+              {t('charts.six_months')}
             </button>
           </div>
         </div>

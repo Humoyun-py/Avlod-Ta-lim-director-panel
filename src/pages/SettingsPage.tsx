@@ -10,14 +10,20 @@ import {
   Lock,
   Building,
   KeyRound,
-  RotateCcw
+  RotateCcw,
+  Check,
+  ShieldCheck
 } from 'lucide-react';
 import { DirectorService } from '../services/mockService';
 import { DirectorSettings } from '../types';
+import { ImageUpload } from '../components/common/ImageUpload';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
+import { applyBrandTheme, AVLOD_PERMANENT_PURPLE } from '../utils/theme';
 
 export const SettingsPage: React.FC = () => {
   const { success, error, info } = useToast();
+  const { updatePassword } = useAuth();
   const [settings, setSettings] = useState<DirectorSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'general' | 'payment' | 'salary' | 'security'>('general');
@@ -34,6 +40,9 @@ export const SettingsPage: React.FC = () => {
     try {
       const data = await DirectorService.getSettings();
       setSettings(data);
+      if (data.primaryColor) {
+        applyBrandTheme(data.primaryColor);
+      }
     } catch {
       error('Xatolik', 'Sozlamalarni yuklab bo‘lmadi');
     } finally {
@@ -50,15 +59,22 @@ export const SettingsPage: React.FC = () => {
     if (!settings) return;
 
     try {
-      await DirectorService.updateSettings(settings);
+      const updated = { ...settings, primaryColor: AVLOD_PERMANENT_PURPLE };
+      await DirectorService.updateSettings(updated);
+      setSettings(updated);
+      applyBrandTheme(AVLOD_PERMANENT_PURPLE);
       success('Saqlandi', 'Tizim sozlamalari muvaffaqiyatli saqlandi');
     } catch {
       error('Xatolik', 'Sozlamalarni yangilashda muammo yuz berdi');
     }
   };
 
-  const handleUpdatePassword = (e: React.FormEvent) => {
+  const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!passwords.currentPassword) {
+      error('Xatolik', 'Joriy parolni kiriting');
+      return;
+    }
     if (!passwords.newPassword || passwords.newPassword.length < 6) {
       error('Xatolik', 'Yangi parol kamida 6 belgidan iborat bo‘lishi lozim');
       return;
@@ -67,8 +83,14 @@ export const SettingsPage: React.FC = () => {
       error('Xatolik', 'Yangi parollar bir-biriga mos kelmadi');
       return;
     }
-    success('Parol yangilandi', 'Director hisobining xavfsizlik paroli muvaffaqiyatli o‘zgartirildi');
-    setPasswords({ currentPassword: '', newPassword: '', confirmNewPassword: '' });
+
+    try {
+      await updatePassword(passwords.currentPassword, passwords.newPassword);
+      success('Parol yangilandi', 'Director hisobining xavfsizlik paroli muvaffaqiyatli yangilandi');
+      setPasswords({ currentPassword: '', newPassword: '', confirmNewPassword: '' });
+    } catch (err: any) {
+      error('Xatolik', err.message || 'Parolni yangilashda xatolik yuz berdi');
+    }
   };
 
   if (loading || !settings) {
@@ -147,37 +169,37 @@ export const SettingsPage: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Asosiy Brand Rang (Primary Color)
+                  Asosiy Brand Rang (Avlod Ta'lim Binafsharang)
                 </label>
                 <div className="flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={settings.primaryColor}
-                    onChange={e => setSettings({ ...settings, primaryColor: e.target.value })}
-                    className="w-10 h-10 rounded-xl cursor-pointer border border-gray-200 p-0.5"
-                  />
-                  <input
-                    type="text"
-                    value={settings.primaryColor}
-                    onChange={e => setSettings({ ...settings, primaryColor: e.target.value })}
-                    className="w-full bg-[#F8F8FC] border border-[#E9EAF3] rounded-xl px-3 py-2 text-xs text-gray-900 font-mono font-bold"
-                  />
+                  <div className="w-10 h-10 rounded-xl bg-[#5C42FD] shadow-sm shadow-[#5C42FD]/30 flex items-center justify-center text-white font-bold text-xs shrink-0">
+                    <Check className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 bg-[#F8F8FC] border border-[#E9EAF3] rounded-xl px-3.5 py-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-3.5 h-3.5 rounded-full bg-[#5C42FD]" />
+                      <span className="text-xs font-mono font-bold text-gray-900">#5C42FD</span>
+                    </div>
+                    <span className="text-[11px] font-bold text-[#5C42FD] bg-purple-50 px-2 py-0.5 rounded-md">
+                      Doimiy rasmiy rang
+                    </span>
+                  </div>
                 </div>
-                <p className="text-[10px] text-gray-400 mt-1">Avlod Ta'lim standart binafsha: #5C42FD</p>
+                <p className="text-[10px] text-gray-500 mt-1.5 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#5C42FD]" />
+                  Avlod Ta'lim akademiyasining rasmiy rangi doimiy binafsharang (#5C42FD) etib belgilangan.
+                </p>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Logo URL (ixtiyoriy)
-                </label>
-                <input
-                  type="text"
-                  value={settings.logoUrl}
-                  onChange={e => setSettings({ ...settings, logoUrl: e.target.value })}
-                  placeholder="https://..."
-                  className="w-full bg-[#F8F8FC] border border-[#E9EAF3] focus:border-[#5C42FD] focus:bg-white rounded-xl px-3 py-2 text-xs text-gray-900 focus:outline-hidden"
-                />
-              </div>
+            <div className="pt-2">
+              <ImageUpload
+                value={settings.logoUrl || ''}
+                onChange={url => setSettings({ ...settings, logoUrl: url })}
+                label="Markaz Logosi (Logo)"
+                helperText="PNG, JPG, WebP yoki SVG (maksimal 5MB)"
+                aspectRatio="square"
+              />
+            </div>
             </div>
           </div>
         </div>

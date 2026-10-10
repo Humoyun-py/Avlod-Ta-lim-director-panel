@@ -31,12 +31,15 @@ import { StatusBadge } from '../components/common/StatusBadge';
 import { Modal } from '../components/common/Modal';
 import { Drawer } from '../components/common/Drawer';
 import { ConfirmationModal } from '../components/common/ConfirmationModal';
+import { ImageUpload } from '../components/common/ImageUpload';
 import { EmptyState } from '../components/common/EmptyState';
 import { TableSkeleton } from '../components/common/Skeleton';
 import { Pagination } from '../components/common/Pagination';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export const TeachersPage: React.FC = () => {
+  const { t, language } = useLanguage();
   const { success, error, info } = useToast();
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,7 +76,8 @@ export const TeachersPage: React.FC = () => {
     username: '',
     password: '',
     confirmPassword: '',
-    subject: 'Frontend Web Development'
+    subject: 'Frontend Web Development',
+    avatarUrl: ''
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
@@ -184,6 +188,7 @@ export const TeachersPage: React.FC = () => {
         phone: formData.phone.trim(),
         username: formData.username.trim(),
         subject: formData.subject,
+        avatarUrl: formData.avatarUrl || undefined,
         status: 'active',
         salaryPercentage: 40
       });
@@ -197,7 +202,8 @@ export const TeachersPage: React.FC = () => {
         username: '',
         password: '',
         confirmPassword: '',
-        subject: 'Frontend Web Development'
+        subject: 'Frontend Web Development',
+        avatarUrl: ''
       });
       setPhoneRaw('');
       setFormErrors({});
@@ -238,10 +244,10 @@ export const TeachersPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
-            Ustozlar (Teachers)
+            {t('teachers.title')}
           </h2>
           <p className="text-xs sm:text-sm text-gray-500">
-            Akademiyadagi barcha mentor va ustozlar shaxsiy ishlari, dars guruhlari va oylik hisoblari
+            {t('teachers.subtitle')}
           </p>
         </div>
 
@@ -255,7 +261,8 @@ export const TeachersPage: React.FC = () => {
               username: '',
               password: '',
               confirmPassword: '',
-              subject: 'Frontend Web Development'
+              subject: 'Frontend Web Development',
+              avatarUrl: ''
             });
             setPhoneRaw('');
             setFormErrors({});
@@ -266,7 +273,7 @@ export const TeachersPage: React.FC = () => {
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#5C42FD] hover:bg-[#4d33eb] text-white text-xs font-bold rounded-xl shadow-sm shadow-[#5C42FD]/30 transition-all cursor-pointer shrink-0"
         >
           <Plus className="w-4 h-4" />
-          <span>Create Teacher</span>
+          <span>{t('teachers.new_teacher')}</span>
         </button>
       </div>
 
@@ -281,7 +288,7 @@ export const TeachersPage: React.FC = () => {
               setSearchQuery(e.target.value);
               setCurrentPage(1);
             }}
-            placeholder="Ism, familiya, username yoki telefon..."
+            placeholder={t('teachers.search_placeholder')}
             className="w-full bg-[#F8F8FC] border border-[#E9EAF3] focus:border-[#5C42FD] focus:bg-white rounded-xl pl-9 pr-3 py-2 text-xs text-gray-900 placeholder-gray-400 focus:outline-hidden transition-all"
           />
         </div>
@@ -294,7 +301,7 @@ export const TeachersPage: React.FC = () => {
                 statusFilter === 'all' ? 'bg-white text-[#5C42FD] shadow-xs' : 'text-gray-500 hover:text-gray-900'
               }`}
             >
-              Barchasi ({teachers.length})
+              {t('common.all')} ({teachers.length})
             </button>
             <button
               onClick={() => { setStatusFilter('active'); setCurrentPage(1); }}
@@ -518,6 +525,15 @@ export const TeachersPage: React.FC = () => {
         maxWidth="lg"
       >
         <form onSubmit={handleCreateTeacher} className="space-y-4">
+          {/* Teacher Avatar Upload from Computer */}
+          <ImageUpload
+            value={formData.avatarUrl}
+            onChange={url => setFormData({ ...formData, avatarUrl: url })}
+            label="Ustoz Rasmi (Avatar)"
+            helperText="PNG, JPG, WebP (maksimal 5MB)"
+            aspectRatio="avatar"
+          />
+
           {/* First & Last Name */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>

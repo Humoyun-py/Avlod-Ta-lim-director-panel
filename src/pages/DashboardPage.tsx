@@ -13,7 +13,8 @@ import {
   Plus,
   TrendingUp,
   Award,
-  ChevronRight
+  ChevronRight,
+  Coins
 } from 'lucide-react';
 import { StatCard } from '../components/common/StatCard';
 import { RevenueChart } from '../components/charts/RevenueChart';
@@ -22,30 +23,38 @@ import { AttendanceChart } from '../components/charts/AttendanceChart';
 import { PaymentStatsChart } from '../components/charts/PaymentStatsChart';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { DirectorService } from '../services/mockService';
-import { Payment, ShopOrder, Student, Teacher } from '../types';
+import { Payment, ShopOrder, Student, Teacher, Group, TeacherSalaryRecord } from '../types';
+import { useLanguage } from '../context/LanguageContext';
 
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const { t, language } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [orders, setOrders] = useState<ShopOrder[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [salaries, setSalaries] = useState<TeacherSalaryRecord[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [pay, stu, ord, tch] = await Promise.all([
+        const [pay, stu, ord, tch, grp, sal] = await Promise.all([
           DirectorService.getPayments(),
           DirectorService.getStudents(),
           DirectorService.getOrders(),
-          DirectorService.getTeachers()
+          DirectorService.getTeachers(),
+          DirectorService.getGroups(),
+          DirectorService.getSalaries()
         ]);
         setPayments(pay);
         setStudents(stu);
         setOrders(ord);
         setTeachers(tch);
+        setGroups(grp);
+        setSalaries(sal);
       } finally {
         setLoading(false);
       }
@@ -53,12 +62,46 @@ export const DashboardPage: React.FC = () => {
     fetchData();
   }, []);
 
-  const totalStudentsCount = 294; // Total across all groups in academy
-  const activeStudentsCount = 281;
-  const blockedStudentsCount = 13;
+  // Dynamic calculations from real records
+  const totalStudentsCount = students.length;
+  const activeStudentsCount = students.filter(s => s.status === 'active').length;
+  const blockedStudentsCount = students.filter(s => s.status === 'blocked').length;
 
-  const totalTeachersCount = teachers.length || 6;
-  const activeTeachersCount = teachers.filter(t => t.status === 'active').length || 5;
+  const totalTeachersCount = teachers.length;
+  const activeTeachersCount = teachers.filter(t => t.status === 'active').length;
+
+  const totalGroupsCount = groups.length;
+  const activeGroupsCount = groups.length;
+
+  // Monthly Revenue from confirmed payments
+  const totalPaidRevenue = payments
+    .filter(p => p.status === 'paid')
+    .reduce((sum, p) => sum + p.amount, 0);
+
+  const cashRevenue = payments
+    .filter(p => p.status === 'paid' && p.method === 'Naqd')
+    .reduce((sum, p) => sum + p.amount, 0);
+
+  const onlineRevenue = totalPaidRevenue - cashRevenue;
+
+  // Teacher Salary from records
+  const totalSalaries = salaries.reduce((sum, s) => sum + s.calculatedSalary, 0);
+  const paidSalaries = salaries
+    .filter(s => s.status === 'paid')
+    .reduce((sum, s) => sum + s.calculatedSalary, 0);
+  const pendingSalaries = totalSalaries - paidSalaries;
+
+  // Pending Payments from students
+  const pendingStudents = students.filter(
+    s => s.paymentStatus === 'pending' || s.paymentStatus === 'overdue'
+  );
+  const pendingCount = pendingStudents.length;
+  const overdueCount = students.filter(s => s.paymentStatus === 'overdue').length;
+  const pendingAmount = pendingStudents.reduce((sum, s) => sum + s.monthlyPayment, 0);
+
+  // Shop Orders stats
+  const pendingOrdersCount = orders.filter(o => o.status === 'Pending').length;
+  const totalCoinVolume = orders.reduce((sum, o) => sum + (o.coinAmount || 0), 0);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-200">
@@ -66,24 +109,32 @@ export const DashboardPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-white via-white to-[#F2EFFF] p-6 rounded-3xl border border-[#E9EAF3] shadow-xs">
         <div className="space-y-1">
           <span className="text-xs font-bold tracking-wider uppercase text-[#5C42FD] bg-purple-50 px-2.5 py-1 rounded-md">
-            Director Boshqaruvi
+            {t('dashboard.badge')}
           </span>
           <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
-            Xush kelibsiz, Sardor Rahmonov
+            {t('dashboard.welcome_prefix')}, Sardor Rahmonov
           </h2>
           <p className="text-xs sm:text-sm text-gray-500">
-            Avlod Ta'lim akademiyasining umumiy ko‘rsatkichlari, moliyaviy oqimlari va talabalar dinamikasi.
+            {t('dashboard.welcome_subtitle')}
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+          <button
+            type="button"
+            onClick={() => navigate('/director/coins')}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-xs shadow-amber-500/30 transition-all cursor-pointer"
+          >
+            <Coins className="w-4 h-4" />
+            <span>{t('dashboard.give_coins_btn')}</span>
+          </button>
           <button
             type="button"
             onClick={() => navigate('/director/payments')}
             className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 text-xs font-bold rounded-xl shadow-2xs transition-colors cursor-pointer"
           >
             <CreditCard className="w-4 h-4 text-emerald-600" />
-            <span>To‘lovlarni ko‘rish</span>
+            <span>{t('dashboard.view_payments_btn')}</span>
           </button>
           <button
             type="button"
@@ -91,7 +142,7 @@ export const DashboardPage: React.FC = () => {
             className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-[#5C42FD] hover:bg-[#4d33eb] text-white text-xs font-bold rounded-xl shadow-sm shadow-[#5C42FD]/30 transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Yangi O‘quvchi</span>
+            <span>{t('dashboard.new_student_btn')}</span>
           </button>
         </div>
       </div>
@@ -100,62 +151,62 @@ export const DashboardPage: React.FC = () => {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">
-            Asosiy Akademiya Ko‘rsatkichlari
+            {t('dashboard.key_metrics')}
           </h3>
-          <span className="text-xs text-gray-400">Jonli yangilanish</span>
+          <span className="text-xs text-gray-400">{t('dashboard.live_update')}</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
-            title="Total Students"
+            title={t('dashboard.total_students')}
             value={totalStudentsCount}
-            subtitle="Jami o‘quvchilar soni"
+            subtitle={t('dashboard.total_students_sub')}
             icon={GraduationCap}
             accentColor="#5C42FD"
             trend={{ value: '14.2%', isPositive: true }}
             subStats={[
-              { label: 'Active', value: activeStudentsCount, highlight: 'emerald' },
-              { label: 'Blocked', value: blockedStudentsCount, highlight: 'rose' }
+              { label: t('dashboard.active'), value: activeStudentsCount, highlight: 'emerald' },
+              { label: t('dashboard.blocked'), value: blockedStudentsCount, highlight: 'rose' }
             ]}
             onClick={() => navigate('/director/students')}
           />
 
           <StatCard
-            title="Total Teachers"
+            title={t('dashboard.total_teachers')}
             value={totalTeachersCount}
-            subtitle="Jami ustozlar shtati"
+            subtitle={t('dashboard.total_teachers_sub')}
             icon={Users}
             accentColor="#4F46E5"
-            trend={{ value: '1 mentor', isPositive: true }}
+            trend={{ value: `${totalTeachersCount} mentor`, isPositive: true }}
             subStats={[
-              { label: 'Active ustozlar', value: activeTeachersCount, highlight: 'emerald' },
-              { label: 'Guruhlar biriktirilgan', value: '14 ta', highlight: 'indigo' }
+              { label: t('dashboard.active_teachers'), value: activeTeachersCount, highlight: 'emerald' },
+              { label: t('dashboard.all_groups'), value: `${totalGroupsCount} ${t('common.groups_count_suffix')}`, highlight: 'indigo' }
             ]}
             onClick={() => navigate('/director/teachers')}
           />
 
           <StatCard
-            title="Total Groups"
-            value="14 ta"
-            subtitle="Jami guruhlar soni"
+            title={t('dashboard.total_groups')}
+            value={`${totalGroupsCount} ${t('common.groups_count_suffix')}`}
+            subtitle={t('dashboard.total_groups_sub')}
             icon={Layers}
             accentColor="#0284C7"
             subStats={[
-              { label: 'Active guruhlar', value: '12 ta', highlight: 'emerald' },
-              { label: 'Rejalashtirilgan', value: '2 ta', highlight: 'amber' }
+              { label: t('dashboard.active_groups'), value: `${activeGroupsCount} ${t('common.groups_count_suffix')}`, highlight: 'emerald' },
+              { label: t('dashboard.student_reach'), value: `${totalStudentsCount} ${t('common.students_count_suffix')}`, highlight: 'amber' }
             ]}
             onClick={() => navigate('/director/groups')}
           />
 
           <StatCard
-            title="Monthly Revenue"
-            value="284,000,000 UZS"
-            subtitle="Shu oy tushumi (Oktyabr)"
+            title={t('dashboard.monthly_revenue')}
+            value={`${totalPaidRevenue.toLocaleString()} ${t('common.uzs')}`}
+            subtitle={t('dashboard.monthly_revenue_sub')}
             icon={DollarSign}
             accentColor="#10B981"
-            trend={{ value: '8.4%', isPositive: true }}
+            trend={{ value: t('dashboard.live_update'), isPositive: true }}
             subStats={[
-              { label: 'Kassa (Naqd)', value: '42.6 mln', highlight: 'gray' },
-              { label: 'Online (Payme/Click)', value: '241.4 mln', highlight: 'emerald' }
+              { label: t('dashboard.cash_desk'), value: `${cashRevenue.toLocaleString()} ${t('common.uzs')}`, highlight: 'gray' },
+              { label: t('dashboard.online_pay'), value: `${onlineRevenue.toLocaleString()} ${t('common.uzs')}`, highlight: 'emerald' }
             ]}
             onClick={() => navigate('/director/payments')}
           />
@@ -165,40 +216,40 @@ export const DashboardPage: React.FC = () => {
       {/* Row 2: Financial & Operational Sub-Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
-          title="Teacher Salary"
-          value="113,600,000 UZS"
-          subtitle="Shu oy ustozlarga hisoblangan (40%)"
+          title={t('dashboard.teacher_salary')}
+          value={`${totalSalaries.toLocaleString()} ${t('common.uzs')}`}
+          subtitle={t('dashboard.teacher_salary_sub')}
           icon={Wallet}
           accentColor="#8B5CF6"
           subStats={[
-            { label: 'To‘lab berildi', value: '44.8 mln', highlight: 'emerald' },
-            { label: 'Kutilayotgan', value: '68.8 mln', highlight: 'amber' }
+            { label: t('dashboard.paid_out'), value: `${paidSalaries.toLocaleString()} ${t('common.uzs')}`, highlight: 'emerald' },
+            { label: t('dashboard.awaiting'), value: `${pendingSalaries.toLocaleString()} ${t('common.uzs')}`, highlight: 'amber' }
           ]}
           onClick={() => navigate('/director/teacher-salary')}
         />
 
         <StatCard
-          title="Pending Payments"
-          value="44 nafar"
-          subtitle="To‘lov qilishi kerak bo‘lganlar"
+          title={t('dashboard.pending_payments')}
+          value={`${pendingCount} ${t('common.students_count_suffix')}`}
+          subtitle={t('dashboard.pending_payments_sub')}
           icon={Clock}
           accentColor="#F59E0B"
           subStats={[
-            { label: 'Kutilayotgan summa', value: '52.8 mln UZS', highlight: 'amber' },
-            { label: 'Muddati o‘tgan', value: '23 nafar', highlight: 'rose' }
+            { label: t('dashboard.pending_sum'), value: `${pendingAmount.toLocaleString()} ${t('common.uzs')}`, highlight: 'amber' },
+            { label: t('dashboard.overdue'), value: `${overdueCount} ${t('common.students_count_suffix')}`, highlight: 'rose' }
           ]}
           onClick={() => navigate('/director/payments')}
         />
 
         <StatCard
-          title="Shop Orders"
-          value="5 ta yangi"
-          subtitle="Talabalarning so‘nggi buyurtmalari"
+          title={t('dashboard.shop_orders')}
+          value={`${orders.length} ta`}
+          subtitle={t('dashboard.shop_orders_sub')}
           icon={ShoppingBag}
           accentColor="#EC4899"
           subStats={[
-            { label: 'Tasdiqlash kerak', value: '2 ta', highlight: 'amber' },
-            { label: 'Coin aylanmasi', value: '2,380 coin', highlight: 'indigo' }
+            { label: t('dashboard.needs_approval'), value: `${pendingOrdersCount} ta`, highlight: 'amber' },
+            { label: t('dashboard.coin_turnover'), value: `${totalCoinVolume.toLocaleString()} ${t('common.coins')}`, highlight: 'indigo' }
           ]}
           onClick={() => navigate('/director/orders')}
         />
@@ -220,9 +271,9 @@ export const DashboardPage: React.FC = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold text-gray-900">
-            So‘nggi Amaliyotlar va Harakatlar
+            {t('dashboard.recent_operations')}
           </h3>
-          <span className="text-xs text-gray-500">Avlod Ta'lim real-time faolligi</span>
+          <span className="text-xs text-gray-500">{t('dashboard.realtime_activity')}</span>
         </div>
 
         {/* 1. Recent Payments Table */}
@@ -230,13 +281,13 @@ export const DashboardPage: React.FC = () => {
           <div className="px-6 py-4 border-b border-[#F0F1F7] flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CreditCard className="w-4 h-4 text-[#5C42FD]" />
-              <h4 className="text-sm font-bold text-gray-900">Recent Payments (So‘nggi To‘lovlar)</h4>
+              <h4 className="text-sm font-bold text-gray-900">{t('dashboard.recent_payments')}</h4>
             </div>
             <button
               onClick={() => navigate('/director/payments')}
               className="text-xs text-[#5C42FD] font-semibold hover:underline flex items-center gap-1 cursor-pointer"
             >
-              <span>Barchasini ko‘rish</span>
+              <span>{t('common.view_all')}</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -245,12 +296,12 @@ export const DashboardPage: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead className="bg-[#FAF9FE] text-gray-500 font-semibold border-b border-gray-100">
                 <tr>
-                  <th className="px-6 py-3">Student</th>
-                  <th className="px-6 py-3">Guruh / Kurs</th>
-                  <th className="px-6 py-3">Summa</th>
-                  <th className="px-6 py-3">To‘lov Usuli</th>
-                  <th className="px-6 py-3">Sana</th>
-                  <th className="px-6 py-3">Status</th>
+                  <th className="px-6 py-3">{t('dashboard.th_student')}</th>
+                  <th className="px-6 py-3">{t('dashboard.th_group_course')}</th>
+                  <th className="px-6 py-3">{t('dashboard.th_amount')}</th>
+                  <th className="px-6 py-3">{t('dashboard.th_method')}</th>
+                  <th className="px-6 py-3">{t('dashboard.th_date')}</th>
+                  <th className="px-6 py-3">{t('dashboard.th_status')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 text-gray-700">
@@ -267,7 +318,7 @@ export const DashboardPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-3.5">{p.groupName}</td>
                     <td className="px-6 py-3.5 font-bold text-gray-900">
-                      {p.amount.toLocaleString()} UZS
+                      {p.amount.toLocaleString()} {t('common.uzs')}
                     </td>
                     <td className="px-6 py-3.5">
                       <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-gray-100 text-gray-700">
@@ -293,13 +344,13 @@ export const DashboardPage: React.FC = () => {
               <div className="px-6 py-4 border-b border-[#F0F1F7] flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <GraduationCap className="w-4 h-4 text-[#5C42FD]" />
-                  <h4 className="text-sm font-bold text-gray-900">Recent Students (Yangi O‘quvchilar)</h4>
+                  <h4 className="text-sm font-bold text-gray-900">{t('dashboard.recent_students')}</h4>
                 </div>
                 <button
                   onClick={() => navigate('/director/students')}
                   className="text-xs text-[#5C42FD] font-semibold hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  <span>Barchasi</span>
+                  <span>{t('common.view_all')}</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -308,10 +359,10 @@ export const DashboardPage: React.FC = () => {
                 <table className="w-full text-left text-xs">
                   <thead className="bg-[#FAF9FE] text-gray-500 font-semibold border-b border-gray-100">
                     <tr>
-                      <th className="px-5 py-2.5">O‘quvchi</th>
-                      <th className="px-5 py-2.5">Guruh</th>
-                      <th className="px-5 py-2.5">Sana</th>
-                      <th className="px-5 py-2.5">Status</th>
+                      <th className="px-5 py-2.5">{t('dashboard.th_student')}</th>
+                      <th className="px-5 py-2.5">{t('students.th_group')}</th>
+                      <th className="px-5 py-2.5">{t('dashboard.th_date')}</th>
+                      <th className="px-5 py-2.5">{t('dashboard.th_status')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 text-gray-700">
@@ -340,13 +391,13 @@ export const DashboardPage: React.FC = () => {
               <div className="px-6 py-4 border-b border-[#F0F1F7] flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <ShoppingBag className="w-4 h-4 text-[#5C42FD]" />
-                  <h4 className="text-sm font-bold text-gray-900">Recent Shop Orders (Do‘kon Buyurtmalari)</h4>
+                  <h4 className="text-sm font-bold text-gray-900">{t('dashboard.recent_orders')}</h4>
                 </div>
                 <button
                   onClick={() => navigate('/director/orders')}
                   className="text-xs text-[#5C42FD] font-semibold hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  <span>Barchasi</span>
+                  <span>{t('common.view_all')}</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -355,10 +406,10 @@ export const DashboardPage: React.FC = () => {
                 <table className="w-full text-left text-xs">
                   <thead className="bg-[#FAF9FE] text-gray-500 font-semibold border-b border-gray-100">
                     <tr>
-                      <th className="px-5 py-2.5">Student</th>
-                      <th className="px-5 py-2.5">Mahsulot</th>
-                      <th className="px-5 py-2.5">Coin</th>
-                      <th className="px-5 py-2.5">Status</th>
+                      <th className="px-5 py-2.5">{t('dashboard.th_student')}</th>
+                      <th className="px-5 py-2.5">{t('dashboard.th_product')}</th>
+                      <th className="px-5 py-2.5">{t('dashboard.th_coins')}</th>
+                      <th className="px-5 py-2.5">{t('dashboard.th_status')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 text-gray-700">
@@ -370,7 +421,7 @@ export const DashboardPage: React.FC = () => {
                         </td>
                         <td className="px-5 py-3 truncate max-w-[130px]">{o.productName}</td>
                         <td className="px-5 py-3 font-bold text-amber-600">
-                          {o.coinAmount} coin
+                          {o.coinAmount} {t('common.coins')}
                         </td>
                         <td className="px-5 py-3">
                           <StatusBadge status={o.status} size="sm" />

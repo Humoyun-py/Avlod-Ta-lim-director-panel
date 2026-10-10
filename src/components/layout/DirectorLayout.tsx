@@ -1,20 +1,25 @@
 import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { ConfirmationModal } from '../common/ConfirmationModal';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 
 export const DirectorLayout: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   const { info } = useToast();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     setLogoutModalOpen(false);
+    logout();
     info('Chiqish bajarildi', 'Director sessiyasi xavfsiz yakunlandi.');
+    navigate('/login', { replace: true });
   };
 
   return (

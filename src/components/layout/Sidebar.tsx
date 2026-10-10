@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -16,8 +16,12 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldCheck,
-  Sparkles
+  Sparkles,
+  Coins
 } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
+import { DirectorService } from '../../services/mockService';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -34,18 +38,43 @@ export const Sidebar: React.FC<SidebarProps> = ({
   setMobileOpen,
   onLogoutClick
 }) => {
+  const { t } = useLanguage();
+  const { user } = useAuth();
+  const [pendingOrdersCount, setPendingOrdersCount] = useState<number>(0);
+
+  useEffect(() => {
+    const updatePending = async () => {
+      try {
+        const orders = await DirectorService.getOrders();
+        const pending = orders.filter(o => o.status === 'Pending').length;
+        setPendingOrdersCount(pending);
+      } catch {
+        // ignore
+      }
+    };
+
+    updatePending();
+    window.addEventListener('storage', updatePending);
+    window.addEventListener('orders-updated', updatePending);
+    return () => {
+      window.removeEventListener('storage', updatePending);
+      window.removeEventListener('orders-updated', updatePending);
+    };
+  }, []);
+
   const navItems = [
-    { name: 'Dashboard', path: '/director/dashboard', icon: LayoutDashboard },
-    { name: 'Ustozlar', path: '/director/teachers', icon: UsersRound },
-    { name: 'O‘quvchilar', path: '/director/students', icon: GraduationCap },
-    { name: 'Guruhlar', path: '/director/groups', icon: Layers },
-    { name: 'Kurslar', path: '/director/courses', icon: BookOpen },
-    { name: 'To‘lovlar', path: '/director/payments', icon: CreditCard },
-    { name: 'Ustoz Oyligi', path: '/director/teacher-salary', icon: Wallet },
-    { name: 'Hisobotlar', path: '/director/reports', icon: BarChart3 },
-    { name: 'Do‘kon', path: '/director/shop', icon: ShoppingBag },
-    { name: 'Buyurtmalar', path: '/director/orders', icon: PackageCheck, badge: 3 },
-    { name: 'Sozlamalar', path: '/director/settings', icon: Settings },
+    { name: t('nav.dashboard'), path: '/director/dashboard', icon: LayoutDashboard },
+    { name: t('nav.teachers'), path: '/director/teachers', icon: UsersRound },
+    { name: t('nav.students'), path: '/director/students', icon: GraduationCap },
+    { name: t('nav.coins'), path: '/director/coins', icon: Coins },
+    { name: t('nav.groups'), path: '/director/groups', icon: Layers },
+    { name: t('nav.courses'), path: '/director/courses', icon: BookOpen },
+    { name: t('nav.payments'), path: '/director/payments', icon: CreditCard },
+    { name: t('nav.salary'), path: '/director/teacher-salary', icon: Wallet },
+    { name: t('nav.reports'), path: '/director/reports', icon: BarChart3 },
+    { name: t('nav.shop'), path: '/director/shop', icon: ShoppingBag },
+    { name: t('nav.orders'), path: '/director/orders', icon: PackageCheck, badge: pendingOrdersCount > 0 ? pendingOrdersCount : undefined },
+    { name: t('nav.settings'), path: '/director/settings', icon: Settings },
   ];
 
   return (
@@ -67,32 +96,59 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }`}
       >
         {/* Brand Header */}
-        <div className="h-18 px-5 flex items-center justify-between border-b border-[#F0F1F7]">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-10 h-10 rounded-xl bg-[#5C42FD] text-white flex items-center justify-center font-bold text-lg shadow-md shadow-[#5C42FD]/25 shrink-0">
-              <span className="font-extrabold tracking-tight">A</span>
-            </div>
-            {!collapsed && (
-              <div className="flex flex-col min-w-0">
-                <span className="font-extrabold text-base text-gray-900 tracking-tight leading-tight">
-                  AVLOD <span className="text-[#5C42FD]">TA’LIM</span>
-                </span>
-                <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-400">
-                  Director Panel
-                </span>
-              </div>
-            )}
-          </div>
+        <div
+          className={`h-18 flex items-center border-b border-[#F0F1F7] relative ${
+            collapsed ? 'justify-center px-2' : 'justify-between px-5'
+          }`}
+        >
+          {collapsed ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setCollapsed(false)}
+                className="w-10 h-10 rounded-xl bg-[#5C42FD] text-white flex items-center justify-center font-bold text-lg shadow-md shadow-[#5C42FD]/25 shrink-0 hover:scale-105 transition-transform cursor-pointer"
+                title="Menyuni kengaytirish"
+              >
+                <span className="font-extrabold tracking-tight">A</span>
+              </button>
 
-          {/* Desktop Collapse Toggle */}
-          <button
-            type="button"
-            onClick={() => setCollapsed(!collapsed)}
-            className="hidden lg:flex w-7 h-7 rounded-lg border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 items-center justify-center transition-colors"
-            title={collapsed ? 'Kengaytirish' : 'Yig‘ish'}
-          >
-            {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-          </button>
+              {/* Floating Expand Toggle on the Sidebar border */}
+              <button
+                type="button"
+                onClick={() => setCollapsed(false)}
+                className="hidden lg:flex absolute -right-3.5 top-5.5 w-7 h-7 rounded-full bg-white border border-gray-200 shadow-sm text-gray-600 hover:text-[#5C42FD] hover:bg-[#F4F3FB] items-center justify-center transition-all z-50 cursor-pointer"
+                title="Kengaytirish"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="w-10 h-10 rounded-xl bg-[#5C42FD] text-white flex items-center justify-center font-bold text-lg shadow-md shadow-[#5C42FD]/25 shrink-0">
+                  <span className="font-extrabold tracking-tight">A</span>
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="font-extrabold text-base text-gray-900 tracking-tight leading-tight">
+                    AVLOD <span className="text-[#5C42FD]">TA’LIM</span>
+                  </span>
+                  <span className="text-[10px] uppercase tracking-wider font-semibold text-gray-400">
+                    Director Panel
+                  </span>
+                </div>
+              </div>
+
+              {/* Desktop Collapse Toggle */}
+              <button
+                type="button"
+                onClick={() => setCollapsed(true)}
+                className="hidden lg:flex w-7 h-7 rounded-lg border border-gray-200 text-gray-500 hover:text-gray-900 hover:bg-gray-50 items-center justify-center transition-colors cursor-pointer"
+                title="Yig‘ish"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            </>
+          )}
         </div>
 
         {/* Navigation List */}
@@ -147,16 +203,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="p-2.5 rounded-xl bg-white border border-[#E9EAF3] flex items-center justify-between shadow-2xs">
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="w-8 h-8 rounded-lg bg-[#5C42FD]/10 text-[#5C42FD] flex items-center justify-center font-bold text-xs shrink-0">
-                  DR
+                  {user?.fullName ? user.fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'DR'}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-bold text-gray-900 truncate">
-                    Sardor Rahmonov
+                    {user?.fullName || 'Sardor Rahmonov'}
                   </p>
                   <div className="flex items-center gap-1">
                     <ShieldCheck className="w-3 h-3 text-[#5C42FD]" />
                     <span className="text-[10px] font-medium text-gray-500">
-                      Bosh Direktor
+                      {t('topbar.role')}
                     </span>
                   </div>
                 </div>

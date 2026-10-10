@@ -88,6 +88,7 @@ export interface Payment {
   amount: number;
   method: PaymentMethod;
   receiptNumber?: string;
+  receiptImage?: string;
   date: string;
   status: PaymentStatus;
   note?: string;
@@ -165,3 +166,18 @@ export interface ToastMessage {
   message: string;
   duration?: number;
 }
+
+export interface CoinTransaction {
+  id: string;
+  studentId: string;
+  studentPublicId: string;
+  studentName: string;
+  groupName: string;
+  amount: number;
+  operation: 'add' | 'subtract' | 'set';
+  previousBalance: number;
+  newBalance: number;
+  reason: string;
+  date: string;
+}
+

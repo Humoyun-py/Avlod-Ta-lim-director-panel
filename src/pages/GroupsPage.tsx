@@ -14,7 +14,8 @@ import {
   X,
   GraduationCap,
   MapPin,
-  CheckCircle2
+  CheckCircle2,
+  Download
 } from 'lucide-react';
 import { DirectorService } from '../services/mockService';
 import { Course, Group, Student, Teacher } from '../types';
@@ -24,8 +25,11 @@ import { Drawer } from '../components/common/Drawer';
 import { ConfirmationModal } from '../components/common/ConfirmationModal';
 import { EmptyState } from '../components/common/EmptyState';
 import { useToast } from '../context/ToastContext';
+import { exportToCSV } from '../utils/exportUtils';
+import { useLanguage } from '../context/LanguageContext';
 
 export const GroupsPage: React.FC = () => {
+  const { t } = useLanguage();
   const { success, error, info } = useToast();
   const [groups, setGroups] = useState<Group[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -186,27 +190,56 @@ export const GroupsPage: React.FC = () => {
     }
   };
 
+  const handleExportGroups = () => {
+    if (filteredGroups.length === 0) {
+      info('Eksport', 'Eksport qilish uchun guruhlar topilmadi');
+      return;
+    }
+    const headers = ['Guruh Nomi', 'Kurs', 'Ustoz', 'Talabalar Soni', 'Max Talabalar', 'Dars Jadvali', 'Xona'];
+    const rows = filteredGroups.map(g => [
+      g.name,
+      g.courseName,
+      g.teacherName,
+      g.studentsCount,
+      g.maxStudents,
+      g.schedule,
+      g.room || 'Asosiy auditoriya'
+    ]);
+    exportToCSV('avlod_guruhlar_royxati.csv', headers, rows);
+    success('Yuklab olindi', 'Guruhlar ro‘yxati muvaffaqiyatli CSV/Excel faylga yuklandi');
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
-            Akademik Guruhlar (Groups)
+            {t('groups.title')}
           </h2>
           <p className="text-xs sm:text-sm text-gray-500">
-            Dars jadvallari, o‘quv xonalari va talabalar tarkibini boshqarish
+            {t('groups.subtitle')}
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setCreateModalOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#5C42FD] hover:bg-[#4d33eb] text-white text-xs font-bold rounded-xl shadow-sm shadow-[#5C42FD]/30 transition-all cursor-pointer shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Create Group</span>
-        </button>
+        <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={handleExportGroups}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 text-xs font-bold rounded-xl shadow-2xs transition-colors cursor-pointer"
+          >
+            <Download className="w-4 h-4 text-emerald-600" />
+            <span>{t('common.export')}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setCreateModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#5C42FD] hover:bg-[#4d33eb] text-white text-xs font-bold rounded-xl shadow-sm shadow-[#5C42FD]/30 transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{t('groups.new_group')}</span>
+          </button>
+        </div>
       </div>
 
       {/* Toolbar */}
@@ -414,6 +447,7 @@ export const GroupsPage: React.FC = () => {
                 onChange={e => setFormData({ ...formData, courseId: e.target.value })}
                 className="w-full bg-white border border-gray-200 focus:border-[#5C42FD] focus:ring-2 focus:ring-[#5C42FD]/15 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 shadow-2xs focus:outline-hidden transition-all cursor-pointer"
               >
+                <option value="">Tanlash...</option>
                 {courses.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
@@ -424,13 +458,14 @@ export const GroupsPage: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                Ustoz (Mentor)
+                Ustoz (Mentor) <span className="text-rose-500">*</span>
               </label>
               <select
                 value={formData.teacherId}
                 onChange={e => setFormData({ ...formData, teacherId: e.target.value })}
                 className="w-full bg-white border border-gray-200 focus:border-[#5C42FD] focus:ring-2 focus:ring-[#5C42FD]/15 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 shadow-2xs focus:outline-hidden transition-all cursor-pointer"
               >
+                <option value="">Tanlash...</option>
                 {teachers.map(t => (
                   <option key={t.id} value={t.id}>{t.fullName} ({t.subject})</option>
                 ))}
@@ -443,10 +478,13 @@ export const GroupsPage: React.FC = () => {
               </label>
               <input
                 type="number"
-                min="5"
-                max="30"
-                value={formData.maxStudents}
-                onChange={e => setFormData({ ...formData, maxStudents: Number(e.target.value) })}
+                min="1"
+                max="50"
+                value={formData.maxStudents === 0 ? '' : formData.maxStudents}
+                onChange={e => {
+                  const raw = e.target.value.replace(/^0+(?=\d)/, '');
+                  setFormData({ ...formData, maxStudents: raw === '' ? 0 : Number(raw) });
+                }}
                 className="w-full bg-white border border-gray-200 focus:border-[#5C42FD] focus:ring-2 focus:ring-[#5C42FD]/15 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 shadow-2xs focus:outline-hidden transition-all"
               />
             </div>
@@ -455,15 +493,32 @@ export const GroupsPage: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                Dars Jadvali
+                Dars Jadvali <span className="text-rose-500">*</span>
               </label>
-              <input
-                type="text"
+              <select
                 value={formData.schedule}
                 onChange={e => setFormData({ ...formData, schedule: e.target.value })}
-                placeholder="Dush - Chor - Juma | 14:00 - 16:00"
-                className="w-full bg-white border border-gray-200 focus:border-[#5C42FD] focus:ring-2 focus:ring-[#5C42FD]/15 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 shadow-2xs focus:outline-hidden transition-all"
-              />
+                className="w-full bg-white border border-gray-200 focus:border-[#5C42FD] focus:ring-2 focus:ring-[#5C42FD]/15 rounded-xl px-3.5 py-2.5 text-xs text-gray-900 shadow-2xs focus:outline-hidden transition-all cursor-pointer font-medium"
+              >
+                <option value="">Tanlash...</option>
+                <optgroup label="Toq kunlar (Dushanba - Chorshanba - Juma)">
+                  <option value="Toq kunlar (Dush-Chor-Juma) | 09:00 - 11:00">Toq kunlar (Dush-Chor-Juma) | 09:00 - 11:00</option>
+                  <option value="Toq kunlar (Dush-Chor-Juma) | 14:00 - 16:00">Toq kunlar (Dush-Chor-Juma) | 14:00 - 16:00</option>
+                  <option value="Toq kunlar (Dush-Chor-Juma) | 16:30 - 18:30">Toq kunlar (Dush-Chor-Juma) | 16:30 - 18:30</option>
+                  <option value="Toq kunlar (Dush-Chor-Juma) | 19:00 - 21:00">Toq kunlar (Dush-Chor-Juma) | 19:00 - 21:00</option>
+                </optgroup>
+                <optgroup label="Juft kunlar (Seshanba - Payshanba - Shanba)">
+                  <option value="Juft kunlar (Sesh-Pay-Shan) | 09:00 - 11:00">Juft kunlar (Sesh-Pay-Shan) | 09:00 - 11:00</option>
+                  <option value="Juft kunlar (Sesh-Pay-Shan) | 14:00 - 16:00">Juft kunlar (Sesh-Pay-Shan) | 14:00 - 16:00</option>
+                  <option value="Juft kunlar (Sesh-Pay-Shan) | 16:30 - 18:30">Juft kunlar (Sesh-Pay-Shan) | 16:30 - 18:30</option>
+                  <option value="Juft kunlar (Sesh-Pay-Shan) | 19:00 - 21:00">Juft kunlar (Sesh-Pay-Shan) | 19:00 - 21:00</option>
+                </optgroup>
+                <optgroup label="Har kuni / Maxsus">
+                  <option value="Har kuni (Dushanba - Shanba) | 09:00 - 11:00">Har kuni (Dushanba - Shanba) | 09:00 - 11:00</option>
+                  <option value="Har kuni (Dushanba - Shanba) | 14:00 - 16:00">Har kuni (Dushanba - Shanba) | 14:00 - 16:00</option>
+                  <option value="Dam olish kunlari (Shanba - Yakshanba)">Dam olish kunlari (Shanba - Yakshanba)</option>
+                </optgroup>
+              </select>
             </div>
 
             <div>

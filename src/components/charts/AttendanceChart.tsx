@@ -1,7 +1,9 @@
 import React from 'react';
-import { UserCheck, Clock, UserX, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const AttendanceChart: React.FC = () => {
+  const { t, language } = useLanguage();
   // 88% Present, 7% Absent, 5% Late
   const present = 88;
   const absent = 7;
@@ -20,6 +22,15 @@ export const AttendanceChart: React.FC = () => {
   const absentOffset = circumference - presentStroke;
   const lateOffset = absentOffset - absentStroke;
 
+  const labels = {
+    present: language === 'uz' ? 'Darsga kelgan' : language === 'ru' ? 'Присутствовали' : 'Present',
+    absent: language === 'uz' ? 'Sababsiz kelmagan' : language === 'ru' ? 'Отсутствовали' : 'Absent',
+    late: language === 'uz' ? 'Kechikkan' : language === 'ru' ? 'Опоздали' : 'Late',
+    disciplineLabel: language === 'uz' ? 'O‘rtacha dars intizomi:' : language === 'ru' ? 'Средняя дисциплина:' : 'Average discipline:',
+    disciplineValue: language === 'uz' ? 'A’lo (Yuqori barqaror)' : language === 'ru' ? 'Отлично (Высокая)' : 'Excellent (High)',
+    attendanceRate: language === 'uz' ? 'Davomat' : language === 'ru' ? 'Посещаемость' : 'Attendance'
+  };
+
   return (
     <div className="bg-white rounded-2xl p-6 border border-[#E9EAF3] shadow-xs flex flex-col justify-between">
       <div>
@@ -28,11 +39,11 @@ export const AttendanceChart: React.FC = () => {
             <CheckCircle2 className="w-4 h-4" />
           </span>
           <h3 className="text-base font-bold text-gray-900">
-            Umumiy Davomat Tahlili
+            {t('charts.attendance_title')}
           </h3>
         </div>
         <p className="text-xs text-gray-500 mt-1">
-          Hozirgi oy bo‘yicha talabalarning darslarga qatnashish darajasi
+          {t('charts.attendance_sub')}
         </p>
       </div>
 
@@ -87,7 +98,7 @@ export const AttendanceChart: React.FC = () => {
           {/* Center value */}
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-2xl font-black text-gray-900">88%</span>
-            <span className="text-[10px] uppercase font-bold text-gray-400">Qatnashish</span>
+            <span className="text-[10px] uppercase font-bold text-gray-400">{labels.attendanceRate}</span>
           </div>
         </div>
 
@@ -96,7 +107,7 @@ export const AttendanceChart: React.FC = () => {
           <div className="flex items-center justify-between sm:justify-start gap-3 text-xs">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-              <span className="text-gray-600">Present (Kelgan)</span>
+              <span className="text-gray-600">{labels.present}</span>
             </div>
             <span className="font-bold text-gray-900">{present}%</span>
           </div>
@@ -104,7 +115,7 @@ export const AttendanceChart: React.FC = () => {
           <div className="flex items-center justify-between sm:justify-start gap-3 text-xs">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-              <span className="text-gray-600">Absent (Sababsiz)</span>
+              <span className="text-gray-600">{labels.absent}</span>
             </div>
             <span className="font-bold text-gray-900">{absent}%</span>
           </div>
@@ -112,7 +123,7 @@ export const AttendanceChart: React.FC = () => {
           <div className="flex items-center justify-between sm:justify-start gap-3 text-xs">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-              <span className="text-gray-600">Late (Kechikkan)</span>
+              <span className="text-gray-600">{labels.late}</span>
             </div>
             <span className="font-bold text-gray-900">{late}%</span>
           </div>
@@ -120,8 +131,8 @@ export const AttendanceChart: React.FC = () => {
       </div>
 
       <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-        <span>O‘rtacha dars intizomi:</span>
-        <span className="font-bold text-emerald-600">A’lo (Yuqori barqaror)</span>
+        <span>{labels.disciplineLabel}</span>
+        <span className="font-bold text-emerald-600">{labels.disciplineValue}</span>
       </div>
     </div>
   );

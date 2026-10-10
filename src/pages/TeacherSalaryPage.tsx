@@ -19,8 +19,11 @@ import { TeacherSalaryRecord } from '../types';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Drawer } from '../components/common/Drawer';
 import { useToast } from '../context/ToastContext';
+import { exportToCSV } from '../utils/exportUtils';
+import { useLanguage } from '../context/LanguageContext';
 
 export const TeacherSalaryPage: React.FC = () => {
+  const { t } = useLanguage();
   const { success, error, info } = useToast();
   const [salaries, setSalaries] = useState<TeacherSalaryRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,6 +65,25 @@ export const TeacherSalaryPage: React.FC = () => {
     }
   };
 
+  const handleExportSalaries = () => {
+    if (filtered.length === 0) {
+      info('Eksport', 'Eksport qilish uchun maoshlar topilmadi');
+      return;
+    }
+    const headers = ['Ustoz F.I.SH', 'Fan / Yo‘nalish', 'Talabalar Soni', 'Guruhlardan Tushum (UZS)', 'Foiz Stavka', 'Hisoblangan Oylik (UZS)', 'Holati'];
+    const rows = filtered.map(s => [
+      s.teacherName,
+      s.subject,
+      s.studentsCount,
+      s.totalRevenue,
+      `${s.teacherPercentage}%`,
+      s.calculatedSalary,
+      s.status === 'paid' ? 'To‘langan' : 'Kutilmoqda'
+    ]);
+    exportToCSV('avlod_ustozlar_oylik_vedomosti.csv', headers, rows);
+    success('Yuklab olindi', 'Ustozlar oylik vedomosti Excel/CSV fayl sifatida yuklandi');
+  };
+
   const totalCalculatedSalaries = salaries.reduce((acc, curr) => acc + curr.calculatedSalary, 0);
   const totalAcademyRevenue = salaries.reduce((acc, curr) => acc + curr.totalRevenue, 0);
 
@@ -71,21 +93,21 @@ export const TeacherSalaryPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
-            Ustozlar Oyligi (Teacher Salary)
+            {t('salary.title')}
           </h2>
           <p className="text-xs sm:text-sm text-gray-500">
-            To‘langan kurs summalari asosida ustozlarning 40% foiz stavkasi bo‘yicha avtomatik oylik hisobi
+            {t('salary.subtitle')}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => info('Eksport', 'Oylik maoshlar vedomosti Excel faylga eksport qilinmoqda')}
+            onClick={handleExportSalaries}
             className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 text-xs font-bold rounded-xl shadow-2xs transition-colors cursor-pointer"
           >
             <Download className="w-4 h-4 text-emerald-600" />
-            <span>Vedomost Eksport</span>
+            <span>{t('salary.export_payroll')}</span>
           </button>
         </div>
       </div>
@@ -95,12 +117,12 @@ export const TeacherSalaryPage: React.FC = () => {
         <div className="bg-white p-5 rounded-2xl border border-[#E9EAF3] shadow-xs flex items-center justify-between">
           <div>
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-              Shu oy ustozlar oyligi (40%)
+              {t('salary.current_month_salaries')}
             </span>
             <h3 className="text-2xl font-black text-[#5C42FD] mt-1">
-              {totalCalculatedSalaries.toLocaleString()} UZS
+              {totalCalculatedSalaries.toLocaleString()} {t('common.uzs')}
             </h3>
-            <span className="text-xs text-gray-400 mt-0.5 block">Joriy oy uchun hisoblangan summa</span>
+            <span className="text-xs text-gray-400 mt-0.5 block">{t('salary.current_month_salaries')}</span>
           </div>
           <div className="w-12 h-12 rounded-xl bg-[#5C42FD]/10 text-[#5C42FD] flex items-center justify-center">
             <Wallet className="w-6 h-6" />
@@ -273,7 +295,7 @@ export const TeacherSalaryPage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700">
-                    Calculated Monthly Salary
+                    {t('salary.calculated_salary')}
                   </span>
                   <h3 className="text-2xl font-black text-[#5C42FD] mt-0.5">
                     {selectedRecord.calculatedSalary.toLocaleString()} UZS
