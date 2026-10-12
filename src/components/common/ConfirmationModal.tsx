@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { AlertTriangle, Trash2, X, CheckCircle2, Info, LucideIcon } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -20,12 +21,15 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   onConfirm,
   title,
   message,
-  confirmText = 'Tasdiqlash',
-  cancelText = 'Bekor qilish',
+  confirmText,
+  cancelText,
   variant = 'primary',
   icon: CustomIcon,
   isLoading = false
 }) => {
+  const { t } = useLanguage();
+  const effectiveConfirmText = confirmText ?? t('common.confirm');
+  const effectiveCancelText = cancelText ?? t('common.cancel');
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen && !isLoading) {
@@ -114,7 +118,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
               disabled={isLoading}
               className="px-4 py-2.5 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer"
             >
-              {cancelText}
+              {effectiveCancelText}
             </button>
             <button
               type="button"
@@ -124,7 +128,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
               disabled={isLoading}
               className={`px-4 py-2.5 text-xs font-semibold text-white rounded-xl shadow-xs transition-colors cursor-pointer ${confirmBtnClass}`}
             >
-              {isLoading ? 'Bajarilmoqda...' : confirmText}
+              {isLoading ? t('common.loading') : effectiveConfirmText}
             </button>
           </div>
         </div>

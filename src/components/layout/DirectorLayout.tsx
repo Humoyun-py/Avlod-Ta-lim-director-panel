@@ -6,6 +6,7 @@ import { Topbar } from './Topbar';
 import { ConfirmationModal } from '../common/ConfirmationModal';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const DirectorLayout: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -13,12 +14,16 @@ export const DirectorLayout: React.FC = () => {
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   const { info } = useToast();
   const { logout } = useAuth();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
 
   const handleLogout = () => {
     setLogoutModalOpen(false);
     logout();
-    info('Chiqish bajarildi', 'Director sessiyasi xavfsiz yakunlandi.');
+    info(
+      language === 'uz' ? 'Chiqish bajarildi' : language === 'ru' ? 'Выход выполнен' : 'Signed out',
+      language === 'uz' ? 'Direktor sessiyasi xavfsiz yakunlandi.' : language === 'ru' ? 'Сессия директора успешно завершена.' : 'Director session securely ended.'
+    );
     navigate('/login', { replace: true });
   };
 
@@ -56,9 +61,22 @@ export const DirectorLayout: React.FC = () => {
         isOpen={logoutModalOpen}
         onClose={() => setLogoutModalOpen(false)}
         onConfirm={handleLogout}
-        title="Tizimdan chiqishni tasdiqlaysizmi?"
-        message="Director panelidan chiqasiz. Qayta kirish uchun hisob ma'lumotlarini kiritishingiz lozim bo'ladi."
-        confirmText="Chiqish"
+        title={
+          language === 'uz'
+            ? 'Tizimdan chiqishni tasdiqlaysizmi?'
+            : language === 'ru'
+            ? 'Вы действительно хотите выйти из системы?'
+            : 'Confirm system logout?'
+        }
+        message={
+          language === 'uz'
+            ? 'Direktor panelidan chiqasiz. Qayta kirish uchun login va parolni kiritishingiz lozim bo‘ladi.'
+            : language === 'ru'
+            ? 'Вы выйдете из панели директора. Для повторного входа потребуется ввести логин и пароль.'
+            : 'You will be logged out of the Director panel. You will need to log in again to continue.'
+        }
+        confirmText={t('topbar.logout')}
+        cancelText={t('common.cancel')}
         variant="warning"
         icon={LogOut}
       />

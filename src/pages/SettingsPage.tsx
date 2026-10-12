@@ -20,8 +20,10 @@ import { ImageUpload } from '../components/common/ImageUpload';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { applyBrandTheme, AVLOD_PERMANENT_PURPLE } from '../utils/theme';
+import { useLanguage } from '../context/LanguageContext';
 
 export const SettingsPage: React.FC = () => {
+  const { t, language } = useLanguage();
   const { success, error, info } = useToast();
   const { updatePassword } = useAuth();
   const [settings, setSettings] = useState<DirectorSettings | null>(null);
@@ -107,10 +109,10 @@ export const SettingsPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
-            Tizim Sozlamalari (Settings)
+            {t('settings.title')}
           </h2>
           <p className="text-xs sm:text-sm text-gray-500">
-            Avlod Ta'lim markazi parametrlari, oylik to‘lov standartlari, ustozlar foizi va xavfsizlik
+            {t('settings.subtitle')}
           </p>
         </div>
 
@@ -120,24 +122,40 @@ export const SettingsPage: React.FC = () => {
           className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#5C42FD] hover:bg-[#4d33eb] text-white text-xs font-bold rounded-xl shadow-sm shadow-[#5C42FD]/30 transition-all cursor-pointer shrink-0"
         >
           <Save className="w-4 h-4" />
-          <span>O‘zgarishlarni Saqlash</span>
+          <span>{t('settings.save')}</span>
         </button>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-[#E9EAF3] gap-6 text-xs font-bold">
+      <div className="flex border-b border-[#E9EAF3] gap-6 text-xs font-bold overflow-x-auto">
         {[
-          { id: 'general', label: 'Umumiy Sozlamalar (General)', icon: Building },
-          { id: 'payment', label: 'To‘lov Parametrlari (Payment)', icon: CreditCard },
-          { id: 'salary', label: 'Ustoz Oyligi Foizi (Teacher Salary)', icon: Percent },
-          { id: 'security', label: 'Xavfsizlik & Sessiya (Security)', icon: Shield }
+          {
+            id: 'general',
+            label: language === 'uz' ? 'Umumiy Sozlamalar' : language === 'ru' ? 'Общие Настройки' : 'General Settings',
+            icon: Building
+          },
+          {
+            id: 'payment',
+            label: language === 'uz' ? 'To‘lov Parametrlari' : language === 'ru' ? 'Параметры Оплаты' : 'Payment Parameters',
+            icon: CreditCard
+          },
+          {
+            id: 'salary',
+            label: language === 'uz' ? 'Ustoz Oyligi Foizi' : language === 'ru' ? 'Процент Зарплаты' : 'Teacher Salary Rate',
+            icon: Percent
+          },
+          {
+            id: 'security',
+            label: language === 'uz' ? 'Xavfsizlik & Parol' : language === 'ru' ? 'Безопасность & Пароль' : 'Security & Password',
+            icon: Shield
+          }
         ].map(tab => {
           const Icon = tab.icon;
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`pb-3 transition-colors border-b-2 flex items-center gap-2 cursor-pointer ${
+              className={`pb-3 transition-colors border-b-2 flex items-center gap-2 cursor-pointer whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'border-[#5C42FD] text-[#5C42FD]'
                   : 'border-transparent text-gray-500 hover:text-gray-900'
@@ -156,7 +174,7 @@ export const SettingsPage: React.FC = () => {
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1">
-                Markaz Nomi (Center Name)
+                {language === 'uz' ? 'Markaz Nomi' : language === 'ru' ? 'Название Центра' : 'Center Name'}
               </label>
               <input
                 type="text"
