@@ -53,9 +53,25 @@ export const TeachersPage: React.FC = () => {
   // Active Dropdowns / Modals
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
   const [detailsDrawerOpen, setDetailsDrawerOpen] = useState(false);
   const [detailsTab, setDetailsTab] = useState<'overview' | 'groups' | 'students' | 'salary' | 'statistics'>('overview');
+
+  // Close dropdown menu when clicking anywhere outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (activeMenuId) {
+        setActiveMenuId(null);
+      }
+    };
+    if (activeMenuId) {
+      window.addEventListener('click', handleClickOutside);
+    }
+    return () => {
+      window.removeEventListener('click', handleClickOutside);
+    };
+  }, [activeMenuId]);
 
   // Confirmation Delete/Block Modal
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -68,7 +84,7 @@ export const TeachersPage: React.FC = () => {
     teacher: null
   });
 
-  // Create Form State
+  // Create/Edit Form State
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -106,7 +122,7 @@ export const TeachersPage: React.FC = () => {
 
   const isUsernameTaken = Boolean(
     formData.username.trim().length > 0 &&
-    teachers.some(t => t.username.toLowerCase() === formData.username.trim().toLowerCase())
+    teachers.some(t => (!editingTeacher || t.id !== editingTeacher.id) && t.username.toLowerCase() === formData.username.trim().toLowerCase())
   );
   const isUsernameAvailable = Boolean(
     formData.username.trim().length >= 3 && !isUsernameTaken
@@ -145,7 +161,56 @@ export const TeachersPage: React.FC = () => {
     currentPage * itemsPerPage
   );
 
-  const validateCreateForm = () => {
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    const tableEl = document.getElementById('teachers-table-container');
+    if (tableEl) {
+      tableEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  };
+
+  const handleOpenCreate = () => {
+    setEditingTeacher(null);
+    setFormData({
+      firstName: '',
+      lastName: '',
+      phone: '',
+      username: '',
+      password: '',
+      confirmPassword: '',
+      subject: 'Frontend Web Development',
+      avatarUrl: ''
+    });
+    setPhoneRaw('');
+    setFormErrors({});
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+    setCreateModalOpen(true);
+  };
+
+  const handleOpenEdit = (teacher: Teacher) => {
+    setEditingTeacher(teacher);
+    const cleanPhone = teacher.phone.replace('+998', '').trim();
+    const { formatted } = formatUzbekPhone(cleanPhone);
+    setPhoneRaw(formatted);
+
+    setFormData({
+      firstName: teacher.firstName || teacher.fullName.split(' ')[0] || '',
+      lastName: teacher.lastName || teacher.fullName.split(' ').slice(1).join(' ') || '',
+      phone: teacher.phone,
+      username: teacher.username,
+      password: '',
+      confirmPassword: '',
+      subject: teacher.subject,
+      avatarUrl: teacher.avatarUrl || ''
+    });
+    setFormErrors({});
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+    setCreateModalOpen(true);
+  };
+
+  const validateForm = () => {
     const errors: Record<string, string> = {};
     if (!formData.firstName.trim()) errors.firstName = 'Ism kiritilishi shart';
     if (!formData.lastName.trim()) errors.lastName = 'Familiya kiritilishi shart';
@@ -163,38 +228,61 @@ export const TeachersPage: React.FC = () => {
       errors.username = 'Bu username band! Iltimos, boshqa username tanlang.';
     }
 
-    if (!formData.password) {
-      errors.password = 'Parol kiritilishi shart';
-    } else if (formData.password.length < 6) {
-      errors.password = 'Parol kamida 6 belgidan iborat bo‘lishi kerak';
-    }
-    if (formData.password !== formData.confirmPassword) {
-      errors.confirmPassword = 'Parollar bir-biriga mos kelmadi';
+    if (!editingTeacher) {
+      if (!formData.password) {
+        errors.password = 'Parol kiritilishi shart';
+      } else if (formData.password.length < 6) {
+        errors.password = 'Parol kamida 6 belgidan iborat bo‘lishi kerak';
+      }
+      if (formData.password !== formData.confirmPassword) {
+        errors.confirmPassword = 'Parollar bir-biriga mos kelmadi';
+      }
+    } else if (formData.password) {
+      if (formData.password.length < 6) {
+        errors.password = 'Parol kamida 6 belgidan iborat bo‘lishi kerak';
+      }
+      if (formData.password !== formData.confirmPassword) {
+        errors.confirmPassword = 'Parollar bir-biriga mos kelmadi';
+      }
     }
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  const handleCreateTeacher = async (e: React.FormEvent) => {
+  const handleSaveTeacher = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateCreateForm()) return;
+    if (!validateForm()) return;
 
     try {
-      await DirectorService.createTeacher({
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
-        fullName: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
-        phone: formData.phone.trim(),
-        username: formData.username.trim(),
-        subject: formData.subject,
-        avatarUrl: formData.avatarUrl || undefined,
-        status: 'active',
-        salaryPercentage: 40
-      });
+      if (editingTeacher) {
+        await DirectorService.updateTeacher(editingTeacher.id, {
+          firstName: formData.firstName.trim(),
+          lastName: formData.lastName.trim(),
+          fullName: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
+          phone: formData.phone.trim(),
+          username: formData.username.trim(),
+          subject: formData.subject,
+          avatarUrl: formData.avatarUrl || undefined,
+        });
+        success('Yangilandi', 'Ustoz ma’lumotlari muvaffaqiyatli yangilandi');
+      } else {
+        await DirectorService.createTeacher({
+          firstName: formData.firstName.trim(),
+          lastName: formData.lastName.trim(),
+          fullName: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
+          phone: formData.phone.trim(),
+          username: formData.username.trim(),
+          subject: formData.subject,
+          avatarUrl: formData.avatarUrl || undefined,
+          status: 'active',
+          salaryPercentage: 40
+        });
+        success('Muvaffaqiyatli', 'Yangi ustoz ro‘yxatga qo‘shildi');
+      }
 
-      success('Muvaffaqiyatli', 'Yangi ustoz ro‘yxatga qo‘shildi');
       setCreateModalOpen(false);
+      setEditingTeacher(null);
       setFormData({
         firstName: '',
         lastName: '',
@@ -209,7 +297,7 @@ export const TeachersPage: React.FC = () => {
       setFormErrors({});
       loadTeachers();
     } catch {
-      error('Xatolik', 'Ustozni saqlashda muammo yuz berdi');
+      error('Xatolik', 'Ustoz ma’lumotlarini saqlashda muammo yuz berdi');
     }
   };
 
@@ -253,23 +341,7 @@ export const TeachersPage: React.FC = () => {
 
         <button
           type="button"
-          onClick={() => {
-            setFormData({
-              firstName: '',
-              lastName: '',
-              phone: '',
-              username: '',
-              password: '',
-              confirmPassword: '',
-              subject: 'Frontend Web Development',
-              avatarUrl: ''
-            });
-            setPhoneRaw('');
-            setFormErrors({});
-            setShowPassword(false);
-            setShowConfirmPassword(false);
-            setCreateModalOpen(true);
-          }}
+          onClick={handleOpenCreate}
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#5C42FD] hover:bg-[#4d33eb] text-white text-xs font-bold rounded-xl shadow-sm shadow-[#5C42FD]/30 transition-all cursor-pointer shrink-0"
         >
           <Plus className="w-4 h-4" />
@@ -331,12 +403,12 @@ export const TeachersPage: React.FC = () => {
           title="Ustozlar topilmadi"
           description="Kiritilgan qidiruv yoki filtr bo‘yicha hech qanday ustoz ma’lumoti mavjud emas."
           icon={Users}
-          actionText="Yangi ustoz qo‘shish"
-          onAction={() => setCreateModalOpen(true)}
+          actionText={t('teachers.new_teacher')}
+          onAction={handleOpenCreate}
         />
       ) : (
-        <div className="bg-white rounded-2xl border border-[#E9EAF3] overflow-hidden shadow-xs">
-          <div className="overflow-x-auto">
+        <div id="teachers-table-container" className="bg-white rounded-2xl border border-[#E9EAF3] shadow-xs">
+          <div className="overflow-x-auto min-h-[360px]">
             <table className="w-full text-left text-xs">
               <thead className="bg-[#FAF9FE] text-gray-500 font-bold border-b border-[#F0F1F7] tracking-wider uppercase text-[11px]">
                 <tr>
@@ -348,14 +420,15 @@ export const TeachersPage: React.FC = () => {
                   <th className="px-6 py-4 text-center">O‘quvchilar</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4">Sana</th>
-                  <th className="px-6 py-4 text-right">Amallar</th>
+                  <th className="px-6 py-4 text-right">{t('students.th_actions')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 text-gray-700">
-                {paginatedTeachers.map(teacher => (
+              <tbody key={currentPage} className="divide-y divide-gray-100 text-gray-700 animate-page-transition">
+                {paginatedTeachers.map((teacher, index) => (
                   <tr
                     key={teacher.id}
-                    className="hover:bg-[#FAF9FE] transition-colors group cursor-pointer"
+                    style={{ animationDelay: `${index * 25}ms` }}
+                    className="hover:bg-[#FAF9FE] transition-colors group cursor-pointer animate-table-row"
                     onClick={() => {
                       setSelectedTeacher(teacher);
                       setDetailsDrawerOpen(true);
@@ -422,81 +495,124 @@ export const TeachersPage: React.FC = () => {
 
                     {/* Actions Dropdown */}
                     <td
-                      className="px-6 py-3.5 text-right relative"
+                      className="px-6 py-3.5 text-right"
                       onClick={e => e.stopPropagation()}
                     >
-                      <div className="inline-block text-left">
+                      <div className="relative inline-block text-left">
                         <button
                           type="button"
-                          onClick={() => setActiveMenuId(activeMenuId === teacher.id ? null : teacher.id)}
-                          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveMenuId(activeMenuId === teacher.id ? null : teacher.id);
+                          }}
+                          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                            activeMenuId === teacher.id
+                              ? 'text-[#5C42FD] bg-purple-50 ring-2 ring-[#5C42FD]/20'
+                              : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'
+                          }`}
+                          title={t('students.th_actions')}
+                          aria-label="Amallar menyusi"
                         >
                           <MoreVertical className="w-4 h-4" />
                         </button>
 
                         {activeMenuId === teacher.id && (
-                          <div className="absolute right-6 mt-1 w-44 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 z-30 text-left animate-in fade-in zoom-in-95 duration-100">
-                            <button
-                              onClick={() => {
-                                setSelectedTeacher(teacher);
-                                setDetailsDrawerOpen(true);
+                          <>
+                            {/* Backdrop to close menu when clicking anywhere */}
+                            <div
+                              className="fixed inset-0 z-30 bg-transparent cursor-default"
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setActiveMenuId(null);
                               }}
-                              className="w-full px-3.5 py-2 text-xs text-gray-700 hover:bg-[#F8F8FC] hover:text-[#5C42FD] flex items-center gap-2 cursor-pointer"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              <span>Ko‘rish (View)</span>
-                            </button>
+                            />
 
-                            {teacher.status === 'active' ? (
+                            <div
+                              className={`absolute right-0 w-44 bg-white rounded-2xl shadow-xl border border-gray-100 py-1.5 z-40 text-left animate-in fade-in zoom-in-95 duration-100 ${
+                                index >= paginatedTeachers.length - 2
+                                  ? 'bottom-full mb-1 origin-bottom-right'
+                                  : 'top-full mt-1 origin-top-right'
+                              }`}
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedTeacher(teacher);
+                                  setDetailsDrawerOpen(true);
+                                  setActiveMenuId(null);
+                                }}
+                                className="w-full px-3.5 py-2 text-xs text-gray-700 hover:bg-[#F8F8FC] hover:text-[#5C42FD] flex items-center gap-2 cursor-pointer font-medium transition-colors"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-gray-400" />
+                                <span>{t('teachers.view')}</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleOpenEdit(teacher);
+                                  setActiveMenuId(null);
+                                }}
+                                className="w-full px-3.5 py-2 text-xs text-gray-700 hover:bg-[#F8F8FC] hover:text-[#5C42FD] flex items-center gap-2 cursor-pointer font-medium transition-colors"
+                              >
+                                <Edit2 className="w-3.5 h-3.5 text-blue-500" />
+                                <span>{t('teachers.edit')}</span>
+                              </button>
+
+                              {teacher.status === 'active' ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setConfirmDialog({
+                                      isOpen: true,
+                                      type: 'block',
+                                      teacher
+                                    });
+                                    setActiveMenuId(null);
+                                  }}
+                                  className="w-full px-3.5 py-2 text-xs text-amber-600 hover:bg-amber-50 flex items-center gap-2 cursor-pointer font-medium transition-colors"
+                                >
+                                  <Ban className="w-3.5 h-3.5 text-amber-500" />
+                                  <span>{t('teachers.block')}</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setConfirmDialog({
+                                      isOpen: true,
+                                      type: 'activate',
+                                      teacher
+                                    });
+                                    setActiveMenuId(null);
+                                  }}
+                                  className="w-full px-3.5 py-2 text-xs text-emerald-600 hover:bg-emerald-50 flex items-center gap-2 cursor-pointer font-medium transition-colors"
+                                >
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                                  <span>{t('teachers.activate')}</span>
+                                </button>
+                              )}
+
+                              <div className="border-t border-gray-100 my-1" />
+
+                              <button
+                                type="button"
                                 onClick={() => {
                                   setConfirmDialog({
                                     isOpen: true,
-                                    type: 'block',
+                                    type: 'delete',
                                     teacher
                                   });
                                   setActiveMenuId(null);
                                 }}
-                                className="w-full px-3.5 py-2 text-xs text-amber-600 hover:bg-amber-50 flex items-center gap-2 cursor-pointer"
+                                className="w-full px-3.5 py-2 text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer font-medium transition-colors"
                               >
-                                <Ban className="w-3.5 h-3.5" />
-                                <span>Bloklash (Block)</span>
+                                <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                                <span>{t('teachers.delete')}</span>
                               </button>
-                            ) : (
-                              <button
-                                onClick={() => {
-                                  setConfirmDialog({
-                                    isOpen: true,
-                                    type: 'activate',
-                                    teacher
-                                  });
-                                  setActiveMenuId(null);
-                                }}
-                                className="w-full px-3.5 py-2 text-xs text-emerald-600 hover:bg-emerald-50 flex items-center gap-2 cursor-pointer"
-                              >
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                <span>Faollashtirish</span>
-                              </button>
-                            )}
-
-                            <div className="border-t border-gray-100 my-1" />
-
-                            <button
-                              onClick={() => {
-                                setConfirmDialog({
-                                  isOpen: true,
-                                  type: 'delete',
-                                  teacher
-                                });
-                                setActiveMenuId(null);
-                              }}
-                              className="w-full px-3.5 py-2 text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2 cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              <span>O‘chirish (Delete)</span>
-                            </button>
-                          </div>
+                            </div>
+                          </>
                         )}
                       </div>
                     </td>
@@ -511,20 +627,23 @@ export const TeachersPage: React.FC = () => {
             totalPages={totalPages}
             totalItems={filteredTeachers.length}
             itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
+            onPageChange={handlePageChange}
           />
         </div>
       )}
 
-      {/* CREATE TEACHER MODAL */}
+      {/* CREATE / EDIT TEACHER MODAL */}
       <Modal
         isOpen={createModalOpen}
-        onClose={() => setCreateModalOpen(false)}
-        title="Yangi Ustoz Qo‘shish"
-        subtitle="O‘qituvchi shaxsiy va tizimga kirish ma’lumotlarini to‘ldiring"
+        onClose={() => {
+          setCreateModalOpen(false);
+          setEditingTeacher(null);
+        }}
+        title={editingTeacher ? t('teachers.edit_modal_title') : t('teachers.new_teacher')}
+        subtitle={editingTeacher ? t('teachers.edit_modal_subtitle') : "O‘qituvchi shaxsiy va tizimga kirish ma’lumotlarini to‘ldiring"}
         maxWidth="lg"
       >
-        <form onSubmit={handleCreateTeacher} className="space-y-4">
+        <form onSubmit={handleSaveTeacher} className="space-y-4">
           {/* Teacher Avatar Upload from Computer */}
           <ImageUpload
             value={formData.avatarUrl}
@@ -701,7 +820,8 @@ export const TeachersPage: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                Parol <span className="text-rose-500">*</span>
+                Parol {!editingTeacher && <span className="text-rose-500">*</span>}
+                {editingTeacher && <span className="text-[11px] text-gray-400 font-normal ml-1">(O‘zgartirilmasa bo‘sh qoldiring)</span>}
               </label>
               <div className="relative">
                 <input
@@ -789,18 +909,21 @@ export const TeachersPage: React.FC = () => {
           <div className="pt-4 flex items-center justify-end gap-3 border-t border-gray-100">
             <button
               type="button"
-              onClick={() => setCreateModalOpen(false)}
+              onClick={() => {
+                setCreateModalOpen(false);
+                setEditingTeacher(null);
+              }}
               className="px-4 py-2.5 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer"
             >
-              Bekor qilish (Cancel)
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
               disabled={isUsernameTaken}
               className="px-5 py-2.5 text-xs font-bold text-white bg-[#5C42FD] hover:bg-[#4d33eb] disabled:bg-[#5C42FD]/60 disabled:cursor-not-allowed rounded-xl shadow-xs shadow-[#5C42FD]/20 transition-all cursor-pointer flex items-center gap-1.5"
             >
-              <UserPlus className="w-4 h-4" />
-              <span>Create Teacher</span>
+              {editingTeacher ? <Check className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+              <span>{editingTeacher ? t('common.save') : t('teachers.new_teacher')}</span>
             </button>
           </div>
         </form>

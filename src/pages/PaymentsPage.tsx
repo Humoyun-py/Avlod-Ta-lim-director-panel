@@ -141,6 +141,11 @@ export const PaymentsPage: React.FC = () => {
       return;
     }
 
+    if (!receiptImage || !receiptImage.trim()) {
+      error('Chek rasmi majburiy', 'To‘lov cheki yoki kvitansiya fotosuratini yuklash majburiy! Rasm yuklanmaguncha to‘lov qabul qilinmaydi.');
+      return;
+    }
+
     try {
       await DirectorService.addPayment({
         studentId: student.id,
@@ -150,8 +155,8 @@ export const PaymentsPage: React.FC = () => {
         groupName: student.groupName,
         amount: Number(amount),
         method: paymentMethod,
-        receiptNumber: paymentMethod !== 'Naqd' ? receiptNumber.trim() : undefined,
-        receiptImage: paymentMethod !== 'Naqd' && receiptImage ? receiptImage : undefined,
+        receiptNumber: receiptNumber.trim() ? receiptNumber.trim() : (paymentMethod === 'Naqd' ? `KASSA-${Date.now().toString().slice(-6)}` : undefined),
+        receiptImage: receiptImage.trim(),
         note: paymentNote
       });
 
@@ -516,34 +521,58 @@ export const PaymentsPage: React.FC = () => {
 
           {/* Conditional Receipt / Transaction ID Input (Appears ONLY if NOT Naqd) */}
           {paymentMethod !== 'Naqd' && (
-            <div className="space-y-3 p-3.5 bg-purple-50/60 rounded-xl border border-purple-100">
-              <div>
-                <label className="block text-xs font-bold text-purple-950 mb-1.5">
-                  Receipt / Transaction ID ({paymentMethod} chek raqami) <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={receiptNumber}
-                  onChange={e => setReceiptNumber(e.target.value)}
-                  placeholder={`Masalan: ${paymentMethod}-8920194`}
-                  className="w-full bg-white border border-gray-200 focus:border-[#5C42FD] focus:ring-2 focus:ring-[#5C42FD]/15 rounded-xl px-3.5 py-2 text-xs text-gray-900 shadow-2xs focus:outline-hidden font-mono transition-all"
-                />
-                <p className="text-[11px] text-gray-500 mt-1">
-                  {paymentMethod} orqali muvaffaqiyatli o‘tkazilgan tranzaksiya identifikatori.
-                </p>
-              </div>
-
-              {/* Receipt screenshot upload from computer */}
-              <ImageUpload
-                value={receiptImage}
-                onChange={setReceiptImage}
-                label="Chek skrinshoti / fotosurati (ixtiyoriy)"
-                helperText="PNG, JPG, WebP chek rasmi"
-                aspectRatio="wide"
+            <div className="space-y-1.5 p-3.5 bg-purple-50/60 rounded-xl border border-purple-100">
+              <label className="block text-xs font-bold text-purple-950 mb-1">
+                Receipt / Transaction ID ({paymentMethod} chek raqami) <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={receiptNumber}
+                onChange={e => setReceiptNumber(e.target.value)}
+                placeholder={`Masalan: ${paymentMethod}-8920194`}
+                className="w-full bg-white border border-gray-200 focus:border-[#5C42FD] focus:ring-2 focus:ring-[#5C42FD]/15 rounded-xl px-3.5 py-2 text-xs text-gray-900 shadow-2xs focus:outline-hidden font-mono transition-all"
               />
+              <p className="text-[11px] text-gray-500">
+                {paymentMethod} orqali muvaffaqiyatli o‘tkazilgan tranzaksiya raqami.
+              </p>
             </div>
           )}
+
+          {/* Receipt Image Upload (STRICTLY MANDATORY FOR ALL PAYMENTS) */}
+          <div className="space-y-2 p-3.5 bg-gradient-to-br from-purple-50/70 to-indigo-50/40 rounded-2xl border border-purple-100">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold text-gray-900">
+                To‘lov Cheki / Kvitansiya Rasmi <span className="text-rose-500">*</span>
+              </label>
+              <span className="text-[10px] font-black uppercase text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
+                Majburiy
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-500">
+              {paymentMethod === 'Naqd'
+                ? 'Kassa kvitansiyasi yoki to‘lov qabul qilinganligi haqidagi chek fotosuratini yuklang.'
+                : `${paymentMethod} to‘lov ilovasidagi muvaffaqiyatli to‘lov cheki skrinshotini yuklang.`}
+            </p>
+            <ImageUpload
+              value={receiptImage}
+              onChange={setReceiptImage}
+              label="Chek / Kvitansiya rasmi (majburiy)"
+              helperText="PNG, JPG, WebP chek fotosurati (maksimal 5MB)"
+              aspectRatio="wide"
+            />
+            {!receiptImage ? (
+              <div className="flex items-center gap-1.5 p-2 bg-amber-50/90 border border-amber-200 rounded-xl text-[11px] text-amber-800 font-medium">
+                <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                <span>Chek rasmi yuklanmaguncha to‘lov tizimga qabul qilinmaydi!</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 p-2 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] text-emerald-800 font-semibold">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>To‘lov cheki rasmi muvaffaqiyatli biriktirildi.</span>
+              </div>
+            )}
+          </div>
 
           {/* Optional Note */}
           <div>

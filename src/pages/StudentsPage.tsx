@@ -152,6 +152,14 @@ export const StudentsPage: React.FC = () => {
     currentPage * itemsPerPage
   );
 
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    const tableEl = document.getElementById('students-table-container');
+    if (tableEl) {
+      tableEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  };
+
   const handleCreateStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.firstName.trim() || !formData.lastName.trim()) {
@@ -517,7 +525,7 @@ export const StudentsPage: React.FC = () => {
           onAction={() => setAddModalOpen(true)}
         />
       ) : (
-        <div className="bg-white rounded-2xl border border-[#E9EAF3] overflow-hidden shadow-xs">
+        <div id="students-table-container" className="bg-white rounded-2xl border border-[#E9EAF3] overflow-hidden shadow-xs">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-[#FAF9FE] text-gray-500 font-bold border-b border-[#F0F1F7] tracking-wider uppercase text-[11px]">
@@ -534,11 +542,12 @@ export const StudentsPage: React.FC = () => {
                   <th className="px-5 py-4 text-right">{t('common.actions')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 text-gray-700">
-                {paginatedStudents.map(student => (
+              <tbody key={currentPage} className="divide-y divide-gray-100 text-gray-700 animate-page-transition">
+                {paginatedStudents.map((student, idx) => (
                   <tr
                     key={student.id}
-                    className="hover:bg-[#FAF9FE] transition-colors group cursor-pointer"
+                    style={{ animationDelay: `${idx * 25}ms` }}
+                    className="hover:bg-[#FAF9FE] transition-colors group cursor-pointer animate-table-row"
                     onClick={() => {
                       setSelectedStudent(student);
                       setDetailsDrawerOpen(true);
@@ -651,7 +660,7 @@ export const StudentsPage: React.FC = () => {
             totalPages={totalPages}
             totalItems={filteredStudents.length}
             itemsPerPage={itemsPerPage}
-            onPageChange={setCurrentPage}
+            onPageChange={handlePageChange}
           />
         </div>
       )}

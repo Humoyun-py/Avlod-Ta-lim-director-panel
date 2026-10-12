@@ -44,3 +44,34 @@
     background: #B6B8D3;
   }
 }
+
+/* Page to page table transition micro-animations */
+@keyframes pageSlideFade {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.998);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-page-transition {
+  animation: pageSlideFade 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes tableRowEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-table-row {
+  animation: tableRowEnter 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
